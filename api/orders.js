@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { customer, items, payment, note } = req.body || {};
+    const { customer, items, payment, note, utr } = req.body || {};
 
     // Validate request
     if (
