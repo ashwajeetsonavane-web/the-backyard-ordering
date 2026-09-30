@@ -12,13 +12,14 @@ module.exports = async (req, res) => {
 
     // Validate request
     if (
-      !customer?.name ||
-      !validPhone(customer.phone) ||
-      !customer.location ||
-      !Array.isArray(items) ||
-      !items.length ||
-      !['UPI', 'COD'].includes(payment)
-    ) {
+  !customer?.name ||
+  !validPhone(customer.phone) ||
+  !customer.location ||
+  !Array.isArray(items) ||
+  !items.length ||
+  !['UPI', 'COD'].includes(payment) ||
+  (payment === 'UPI' && !String(utr || '').trim())
+) {
       return res.status(400).json({
         error: 'Please complete all required fields.'
       });
@@ -101,8 +102,17 @@ module.exports = async (req, res) => {
       payment_method:
         payment,
 
-      note:
-        String(note || '').slice(0, 300),
+    note:
+  String(note || '').slice(0, 300),
+
+utr:
+  payment === 'UPI'
+    ? String(utr || '').trim().slice(0, 50)
+    : null,
+
+payment_status: 'PENDING',
+
+total,
 
       total,
 
