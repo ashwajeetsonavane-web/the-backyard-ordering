@@ -1,1 +1,422 @@
 
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE BACKYARD — Admin</title>
+
+<style>
+:root{
+  --green:#005b45;
+  --red:#b6202d;
+  --cream:#f8f5ea;
+  --ink:#123f35;
+  --line:#d9ddd6;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#f5f6f2;
+  color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
+}
+
+header{
+  background:var(--cream);
+  padding:18px;
+  border-radius:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+}
+
+h1{
+  margin:0;
+  color:var(--green);
+  font-size:24px;
+}
+
+.sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#68766f;
+}
+
+.key{
+  display:flex;
+  gap:8px;
+}
+
+.key input{
+  width:180px;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:9px;
+}
+
+button{
+  cursor:pointer;
+}
+
+.key button,
+.refresh{
+  border:0;
+  border-radius:9px;
+  background:var(--green);
+  color:#fff;
+  padding:11px 15px;
+  font-weight:800;
+}
+
+.orders{
+  margin-top:18px;
+  display:grid;
+  gap:14px;
+}
+
+.order{
+  background:#fff;
+  border:1px solid #e1e5e0;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 2px 10px #00000008;
+}
+
+.order-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:start;
+}
+
+.order-id{
+  color:var(--green);
+  font-size:18px;
+  font-weight:900;
+}
+
+.customer{
+  margin-top:5px;
+  font-size:14px;
+}
+
+.total{
+  color:var(--red);
+  font-weight:900;
+  font-size:18px;
+}
+
+.info{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  line-height:1.7;
+  font-size:13px;
+}
+
+.items{
+  margin-top:10px;
+  background:#f7f8f5;
+  padding:10px;
+  border-radius:10px;
+}
+
+.status{
+  margin-top:14px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.status button{
+  border:1px solid #cbd4cf;
+  background:#fff;
+  color:var(--green);
+  padding:8px 11px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:12px;
+}
+
+.status button.current{
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.empty{
+  text-align:center;
+  padding:50px;
+  color:#68766f;
+}
+
+.error{
+  background:#fff0f1;
+  color:var(--red);
+  padding:14px;
+  border-radius:10px;
+  margin-top:15px;
+}
+
+@media(max-width:650px){
+  header{
+    display:block;
+  }
+
+  .key{
+    margin-top:15px;
+  }
+
+  .key input{
+    flex:1;
+    width:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>THE BACKYARD</h1>
+    <div class="sub">ORDER MANAGEMENT</div>
+  </div>
+
+  <div class="key">
+    <input id="key" type="password" placeholder="Admin key">
+    <button onclick="loadOrders()">LOGIN</button>
+  </div>
+</header>
+
+<div id="error"></div>
+
+<div style="margin-top:15px">
+  <button class="refresh" onclick="loadOrders()">↻ REFRESH ORDERS</button>
+</div>
+
+<div id="orders" class="orders">
+  <div class="empty">Enter your admin key to load orders.</div>
+</div>
+
+</div>
+
+<script>
+
+const statuses = [
+  'NEW',
+  'ACCEPTED',
+  'PREPARING',
+  'READY',
+  'OUT_FOR_DELIVERY',
+  'COMPLETED',
+  'CANCELLED'
+];
+
+const labels = {
+  NEW:'Order Received',
+  ACCEPTED:'Accepted',
+  PREPARING:'Preparing',
+  READY:'Ready',
+  OUT_FOR_DELIVERY:'Out for Delivery',
+  COMPLETED:'Completed',
+  CANCELLED:'Cancelled'
+};
+
+function esc(value){
+  return String(value ?? '')
+    .replace(/[&<>"']/g,m=>({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
+    }[m]));
+}
+
+async function loadOrders(){
+
+  const key = document.getElementById('key').value.trim();
+
+  if(!key){
+    showError('Enter the ADMIN_KEY first.');
+    return;
+  }
+
+  localStorage.setItem('backyard_admin_key',key);
+
+  document.getElementById('orders').innerHTML =
+    '<div class="empty">Loading orders…</div>';
+
+  try{
+
+    const r = await fetch('/api/admin/orders',{
+      headers:{
+        'x-admin-key':key
+      }
+    });
+
+    const data = await r.json();
+
+    if(!r.ok){
+      throw new Error(data.error || 'Could not load orders');
+    }
+
+    renderOrders(data.orders || []);
+
+    document.getElementById('error').innerHTML='';
+
+  }catch(e){
+
+    showError(e.message);
+
+  }
+}
+
+function renderOrders(orders){
+
+  if(!orders.length){
+    document.getElementById('orders').innerHTML =
+      '<div class="empty">No orders yet.</div>';
+    return;
+  }
+
+  document.getElementById('orders').innerHTML =
+    orders.map(order=>{
+
+      const items = Array.isArray(order.items)
+        ? order.items.map(i =>
+            `<div>${esc(i.name)} × ${esc(i.qty)} — ₹${esc(i.price * i.qty)}</div>`
+          ).join('')
+        : esc(order.items);
+
+      return `
+        <article class="order">
+
+          <div class="order-head">
+
+            <div>
+              <div class="order-id">
+                #${esc(order.order_id)}
+              </div>
+
+              <div class="customer">
+                ${esc(order.customer_name)}
+                · ${esc(order.phone || order.customer_phone)}
+              </div>
+            </div>
+
+            <div class="total">
+              ₹${esc(order.total)}
+            </div>
+
+          </div>
+
+          <div class="info">
+
+            <strong>Location:</strong>
+            ${esc(order.location || order.customer_location)}
+
+            <br>
+
+            <strong>Payment:</strong>
+            ${esc(order.payment_method || order.payment)}
+
+            ${order.note ? `
+              <br>
+              <strong>Note:</strong>
+              ${esc(order.note)}
+            ` : ''}
+
+            <div class="items">
+              ${items}
+            </div>
+
+          </div>
+
+          <div class="status">
+
+            ${statuses.map(status=>`
+              <button
+                class="${order.status === status ? 'current' : ''}"
+                onclick="changeStatus('${esc(order.order_id)}','${status}')">
+                ${labels[status]}
+              </button>
+            `).join('')}
+
+          </div>
+
+        </article>
+      `;
+
+    }).join('');
+}
+
+async function changeStatus(orderId,status){
+
+  const key =
+    document.getElementById('key').value.trim();
+
+  if(!key){
+    showError('Admin key is missing.');
+    return;
+  }
+
+  try{
+
+    const r = await fetch('/api/admin/status',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-admin-key':key
+      },
+      body:JSON.stringify({
+        orderId,
+        status
+      })
+    });
+
+    const data = await r.json();
+
+    if(!r.ok){
+      throw new Error(data.error || 'Could not update status');
+    }
+
+    await loadOrders();
+
+  }catch(e){
+
+    showError(e.message);
+
+  }
+}
+
+function showError(message){
+
+  document.getElementById('error').innerHTML =
+    `<div class="error">${esc(message)}</div>`;
+}
+
+const savedKey =
+  localStorage.getItem('backyard_admin_key');
+
+if(savedKey){
+  document.getElementById('key').value=savedKey;
+}
+
+</script>
+
+</body>
+</html>
