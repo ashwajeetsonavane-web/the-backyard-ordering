@@ -2,12 +2,15 @@ const { supabase, menu, validPhone, notifyWhatsApp } = require('../lib');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
   }
 
   try {
     const { customer, items, payment, note } = req.body || {};
 
+    // Validate request
     if (
       !customer?.name ||
       !validPhone(customer.phone) ||
@@ -21,17 +24,36 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Flatten menu categories into individual products
     const m = menu().flatMap(category => category.items || []);
 
+    // Validate and clean cart items
     const clean = items.map(i => {
-      const x = m.find(v => v.name === i.name);
-      const q = Math.max(1, Math.min(20, parseInt(i.qty, 10)));
+      const itemName = String(i.name || '').trim();
 
-     if (!x || !q) {
-  console.error('INVALID ITEM FROM FRONTEND:', JSON.stringify(i));
-  console.error('MENU NAMES:', JSON.stringify(m.map(v => v.name)));
-  throw new Error('Invalid item');
-}
+      const x = m.find(v =>
+        String(v.name || '').trim().toLowerCase() ===
+        itemName.toLowerCase()
+      );
+
+      const q = Math.max(
+        1,
+        Math.min(20, parseInt(i.qty, 10))
+      );
+
+      if (!x || !q) {
+        console.error(
+          'INVALID ITEM FROM FRONTEND:',
+          JSON.stringify(i)
+        );
+
+        console.error(
+          'MENU NAMES:',
+          JSON.stringify(m.map(v => v.name))
+        );
+
+        throw new Error('Invalid item');
+      }
 
       return {
         name: x.name,
@@ -40,43 +62,88 @@ module.exports = async (req, res) => {
       };
     });
 
-    const total = Math.round(
-      clean.reduce((s, i) => s + i.price * i.qty, 0) * 100
-    ) / 100;
+    // Calculate total from server-side menu prices
+    const total =
+      Math.round(
+        clean.reduce(
+          (sum, item) =>
+            sum + item.price * item.qty,
+          0
+        ) * 100
+      ) / 100;
 
+    // Build order
     const order = {
       order_id: `TB${Date.now().toString().slice(-8)}`,
-      customer_name: String(customer.name).slice(0, 80),
-      customer_phone: String(customer.phone),
-      phone: String(customer.phone),
-      customer_location: String(customer.location).slice(0, 500),
-       location: String(customer.location).slice(0, 500),
+
+      customer_name:
+        String(customer.name).slice(0, 80),
+
+      customer_phone:
+        String(customer.phone),
+
+      // Existing required column
+      phone:
+        String(customer.phone),
+
+      customer_location:
+        String(customer.location).slice(0, 500),
+
+      // Existing required column
+      location:
+        String(customer.location).slice(0, 500),
+
       items: clean,
+
       payment,
-      payment_method: payment,
-      note: String(note || '').slice(0, 300),
+
+      // Existing required column
+      payment_method:
+        payment,
+
+      note:
+        String(note || '').slice(0, 300),
+
       total,
-      subtotal: total,
+
+      // Existing required column
+      subtotal:
+        total,
+
       status: 'NEW'
     };
 
+    // Insert order into Supabase
     const data = await supabase('orders', {
-  method: 'POST',
-  headers: {
-    Prefer: 'return=representation'
-  },
-  body: JSON.stringify(order)
-});
+      method: 'POST',
 
-const created = Array.isArray(data) ? data[0] : data;
+      headers: {
+        Prefer: 'return=representation'
+      },
 
-if (!created || !created.order_id) {
-  console.error('Supabase returned:', JSON.stringify(data));
-  throw new Error('Order was created but no order ID was returned.');
-}
+      body: JSON.stringify(order)
+    });
 
+    const created =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+    if (!created || !created.order_id) {
+      console.error(
+        'Supabase returned:',
+        JSON.stringify(data)
+      );
+
+      throw new Error(
+        'Order was created but no order ID was returned.'
+      );
+    }
+
+    // Optional WhatsApp notification
     notifyWhatsApp(created).catch(console.error);
 
+    // Send confirmation to website
     return res.json({
       orderId: created.order_id,
       total: created.total
