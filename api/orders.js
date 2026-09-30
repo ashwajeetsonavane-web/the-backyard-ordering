@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    const m = menu();
+    const m = menu().flatMap(category => category.items || []);
 
     const clean = items.map(i => {
       const x = m.find(v => v.name === i.name);
