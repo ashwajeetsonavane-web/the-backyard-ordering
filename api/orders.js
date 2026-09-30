@@ -60,17 +60,20 @@ module.exports = async (req, res) => {
       status: 'NEW'
     };
 
-    const { data, error } = await supabase('orders', {
-      method: 'POST',
-      headers: {
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify(order)
-    });
+    const data = await supabase('orders', {
+  method: 'POST',
+  headers: {
+    Prefer: 'return=representation'
+  },
+  body: JSON.stringify(order)
+});
 
-    if (error) throw error;
+const created = Array.isArray(data) ? data[0] : data;
 
-    const created = Array.isArray(data) ? data[0] : data;
+if (!created || !created.order_id) {
+  console.error('Supabase returned:', JSON.stringify(data));
+  throw new Error('Order was created but no order ID was returned.');
+}
 
     notifyWhatsApp(created).catch(console.error);
 
