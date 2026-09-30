@@ -27,7 +27,11 @@ module.exports = async (req, res) => {
       const x = m.find(v => v.name === i.name);
       const q = Math.max(1, Math.min(20, parseInt(i.qty, 10)));
 
-      if (!x || !q) throw new Error('Invalid item');
+     if (!x || !q) {
+  console.error('INVALID ITEM FROM FRONTEND:', JSON.stringify(i));
+  console.error('MENU NAMES:', JSON.stringify(m.map(v => v.name)));
+  throw new Error('Invalid item');
+}
 
       return {
         name: x.name,
