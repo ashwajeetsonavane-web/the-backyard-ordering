@@ -50,6 +50,7 @@ module.exports = async (req, res) => {
       customer_phone: String(customer.phone),
       phone: String(customer.phone),
       customer_location: String(customer.location).slice(0, 500),
+       location: String(customer.location).slice(0, 500),
       items: clean,
       payment,
       note: String(note || '').slice(0, 300),
