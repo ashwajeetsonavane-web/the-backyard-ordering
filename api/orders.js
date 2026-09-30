@@ -56,6 +56,7 @@ module.exports = async (req, res) => {
       payment_method: payment,
       note: String(note || '').slice(0, 300),
       total,
+      subtotal: total,
       status: 'NEW'
     };
 
