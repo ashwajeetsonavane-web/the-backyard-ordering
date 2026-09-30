@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#005b45">
+
+<title>Track Order — THE BACKYARD</title>
+
+<style>
+:root{
+  --green:#005b45;
+  --red:#b6202d;
+  --cream:#f8f5ea;
+  --ink:#123f35;
+  --line:#d9ddd6;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#f7f7f3;
+  color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+
+.wrap{
+  max-width:600px;
+  margin:auto;
+  padding:20px 16px 50px;
+}
+
+.header{
+  background:var(--cream);
+  border-radius:18px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.header img{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid #d1b44a;
+}
+
+.header h1{
+  margin:0;
+  font-size:20px;
+  letter-spacing:2px;
+  color:var(--green);
+}
+
+.header p{
+  margin:3px 0 0;
+  font-size:10px;
+  letter-spacing:2px;
+  color:#66756f;
+}
+
+.card{
+  background:#fff;
+  border:1px solid #e3e6e1;
+  border-radius:18px;
+  margin-top:18px;
+  padding:22px 18px;
+  box-shadow:0 3px 12px #00000008;
+}
+
+.title{
+  text-align:center;
+}
+
+.title h2{
+  margin:0;
+  color:var(--green);
+  font-size:25px;
+}
+
+.order-id{
+  margin-top:7px;
+  color:#68766f;
+  font-size:13px;
+}
+
+.current{
+  margin:24px 0;
+  text-align:center;
+  padding:15px;
+  border-radius:12px;
+  background:#eef7f3;
+  color:var(--green);
+  font-weight:900;
+  font-size:18px;
+}
+
+.steps{
+  margin-top:20px;
+}
+
+.step{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:13px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.step:last-child{
+  border-bottom:0;
+}
+
+.dot{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  border:2px solid #cbd4cf;
+  flex:none;
+}
+
+.step.active .dot,
+.step.done .dot{
+  background:var(--green);
+  border-color:var(--green);
+}
+
+.step.active .label{
+  color:var(--green);
+  font-weight:900;
+}
+
+.step.done .label{
+  color:var(--green);
+  font-weight:700;
+}
+
+.label{
+  font-size:14px;
+}
+
+.amount{
+  text-align:center;
+  margin-top:22px;
+  font-size:14px;
+  color:#68766f;
+}
+
+.amount strong{
+  color:var(--red);
+  font-size:20px;
+}
+
+.back{
+  display:block;
+  text-align:center;
+  margin-top:18px;
+  text-decoration:none;
+  background:var(--green);
+  color:#fff;
+  padding:13px;
+  border-radius:11px;
+  font-weight:900;
+}
+
+.error{
+  text-align:center;
+  padding:30px 10px;
+  color:var(--red);
+  font-weight:700;
+}
+
+.loading{
+  text-align:center;
+  padding:30px;
+  color:#68766f;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <div class="header">
+    <img src="assets/logo.jpeg" alt="THE BACKYARD">
+    <div>
+      <h1>THE BACKYARD</h1>
+      <p>BURGER & BREW</p>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <div class="title">
+      <h2>Track Your Order</h2>
+      <div class="order-id" id="orderId"></div>
+    </div>
+
+    <div id="content">
+      <div class="loading">
+        Checking your order…
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+const params = new URLSearchParams(window.location.search);
+const orderId = params.get('id');
+
+const statuses = [
+  {
+    key:'NEW',
+    label:'Order Received'
+  },
+  {
+    key:'ACCEPTED',
+    label:'Order Accepted'
+  },
+  {
+    key:'PREPARING',
+    label:'Preparing Your Order'
+  },
+  {
+    key:'READY',
+    label:'Order Ready'
+  },
+  {
+    key:'OUT_FOR_DELIVERY',
+    label:'Out for Delivery'
+  },
+  {
+    key:'COMPLETED',
+    label:'Completed'
+  }
+];
+
+function render(order){
+
+  document.getElementById('orderId').textContent =
+    `Order #${order.orderId}`;
+
+  const currentIndex =
+    statuses.findIndex(s => s.key === order.status);
+
+  const html = `
+
+    <div class="current">
+      ${getStatusLabel(order.status)}
+    </div>
+
+    <div class="steps">
+
+      ${statuses.map((s,index)=>{
+
+        let cls = '';
+
+        if(index < currentIndex){
+          cls = 'done';
+        }
+
+        if(index === currentIndex){
+          cls = 'active';
+        }
+
+        return `
+          <div class="step ${cls}">
+            <div class="dot"></div>
+            <div class="label">
+              ${s.label}
+            </div>
+          </div>
+        `;
+
+      }).join('')}
+
+    </div>
+
+    <div class="amount">
+      Total<br>
+      <strong>₹${order.total}</strong>
+    </div>
+
+    <a class="back" href="/">
+      ORDER AGAIN
+    </a>
+  `;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function getStatusLabel(status){
+
+  const found =
+    statuses.find(s => s.key === status);
+
+  return found
+    ? found.label
+    : status || 'Order Received';
+}
+
+function showError(message){
+
+  document.getElementById('content').innerHTML = `
+    <div class="error">
+      ${message}
+      <br><br>
+      Please check your order link.
+    </div>
+  `;
+}
+
+async function loadOrder(){
+
+  if(!orderId){
+    showError('Order ID is missing.');
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/orders/${encodeURIComponent(orderId)}`
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        data.error || 'Order not found'
+      );
+    }
+
+    render(data);
+
+  }catch(error){
+
+    console.error(error);
+
+    showError(
+      'Could not load your order.'
+    );
+  }
+}
+
+loadOrder();
+
+</script>
+
+</body>
+</html>
