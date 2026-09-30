@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#063b32">
+
+  <title>THE BACKYARD — Burger & Brew</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f7f7f3;
+      color: #063b32;
+      padding-bottom: 90px;
+    }
+
+    header {
+      background: #f7f7f3;
+      padding: 24px 18px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid #e5e5df;
+    }
+
+    .brand {
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    .tagline {
+      margin-top: 5px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #777;
+    }
+
+    .hero {
+      padding: 24px 18px 12px;
+    }
+
+    .hero h1 {
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      margin-top: 10px;
+      color: #777;
+      font-size: 13px;
+    }
+
+    .categories {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 14px 18px;
+      scrollbar-width: none;
+      position: sticky;
+      top: 81px;
+      z-index: 8;
+      background: #f7f7f3;
+    }
+
+    .categories::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category {
+      flex: 0 0 auto;
+      border: 1px solid #d8d8d1;
+      background: white;
+      color: #063b32;
+      padding: 10px 15px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .category.active {
+      background: #063b32;
+      color: white;
+      border-color: #063b32;
+    }
+
+    main {
+      padding: 8px 18px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 22px 0 10px;
+      letter-spacing: .5px;
+    }
+
+    .item {
+      background: white;
+      border: 1px solid #e6e6df;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .item-info {
+      min-width: 0;
+    }
+
+    .item-name {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .item-description {
+      color: #777;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .item-price {
+      margin-top: 9px;
+      color: #a20d16;
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    .add {
+      align-self: center;
+      border: 1px solid #063b32;
+      background: white;
+      color: #063b32;
+      border-radius: 9px;
+      padding: 9px 13px;
+      font-weight: 800;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .add:active {
+      transform: scale(.96);
+    }
+
+    .cart-bar {
+      position: fixed;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      background: #063b32;
+      color: white;
+      border-radius: 15px;
+      padding: 15px 17px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+      box-shadow: 0 8px 30px rgba(0,0,0,.18);
+    }
+
+    .cart-bar.show {
+      display: flex;
+    }
+
+    .cart-count {
+      font-size: 12px;
+      opacity: .8;
+    }
+
+    .cart-total {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .view-cart {
+      background: white;
+      color: #063b32;
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-weight: 900;
+    }
+
+    .empty {
+      padding: 50px 20px;
+      text-align: center;
+      color: #777;
+    }
+
+    @media (min-width: 700px) {
+      body {
+        max-width: 760px;
+        margin: auto;
+      }
+
+      .item {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">THE BACKYARD</div>
+  <div class="tagline">BURGER • PIZZA • BREW</div>
+</header>
+
+<section class="hero">
+  <h1>Order directly.</h1>
+  <p>Freshly prepared • Easy ordering • No Zomato</p>
+</section>
+
+<div class="categories" id="categories"></div>
+
+<main id="menu">
+  <div class="empty">Loading menu...</div>
+</main>
+
+<div class="cart-bar" id="cartBar">
+  <div>
+    <div class="cart-count" id="cartCount">0 items</div>
+    <div class="cart-total" id="cartTotal">₹0</div>
+  </div>
+
+  <button class="view-cart" onclick="openCart()">
+    VIEW CART →
+  </button>
+</div>
+
+<script>
+  let menu = [];
+  let cart = {};
+
+  async function loadMenu() {
+    try {
+      const response = await fetch('/menu.json');
+      menu = await response.json();
+
+      if (!Array.isArray(menu)) {
+        throw new Error('Invalid menu');
+      }
+
+      buildCategories();
+      showCategory(getCategories()[0]);
+
+    } catch (error) {
+      console.error(error);
+
+      document.getElementById('menu').innerHTML =
+        '<div class="empty">Unable to load menu.<br>Please refresh the page.</div>';
+    }
+  }
+
+  function getCategories() {
+    return [...new Set(menu.map(item =>
+      item.category || item.section || 'Menu'
+    ))];
+  }
+
+  function buildCategories() {
+    const container = document.getElementById('categories');
+
+    container.innerHTML = getCategories().map((category, index) => `
+      <button
+        class="category ${index === 0 ? 'active' : ''}"
+        onclick="showCategory('${escapeHtml(category)}', this)">
+        ${escapeHtml(category)}
+      </button>
+    `).join('');
+  }
+
+  function showCategory(category, button) {
+    document.querySelectorAll('.category').forEach(x =>
+      x.classList.remove('active')
+    );
+
+    if (button) {
+      button.classList.add('active');
+    } else {
+      const first = document.querySelector('.category');
+      if (first) first.classList.add('active');
+    }
+
+    const items = menu.filter(item =>
+      (item.category || item.section || 'Menu') === category
+    );
+
+    const container = document.getElementById('menu');
+
+    if (!items.length) {
+      container.innerHTML =
+        '<div class="empty">No items available.</div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="section-title">${escapeHtml(category)}</div>
+
+      ${items.map((item, index) => `
+        <div class="item">
+          <div class="item-info">
+            <div class="item-name">
+              ${escapeHtml(item.name)}
+            </div>
+
+            <div class="item-description">
+              ${escapeHtml(
+                item.description ||
+                item.desc ||
+                'Freshly prepared at THE BACKYARD.'
+              )}
+            </div>
+
+            <div class="item-price">
+              ₹${Number(item.price || 0)}
+            </div>
+          </div>
+
+          <button
+            class="add"
+            onclick="addToCart(${JSON.stringify(item.name)})">
+            ADD +
+          </button>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function addToCart(name) {
+    const item = menu.find(x => x.name === name);
+    if (!item) return;
+
+    if (!cart[name]) {
+      cart[name] = {
+        ...item,
+        qty: 0
+      };
+    }
+
+    cart[name].qty++;
+
+    updateCart();
+  }
+
+  function updateCart() {
+    let count = 0;
+    let total = 0;
+
+    Object.values(cart).forEach(item => {
+      count += item.qty;
+      total += Number(item.price || 0) * item.qty;
+    });
+
+    document.getElementById('cartCount').textContent =
+      `${count} item${count === 1 ? '' : 's'}`;
+
+    document.getElementById('cartTotal').textContent =
+      `₹${total}`;
+
+    document.getElementById('cartBar')
+      .classList.toggle('show', count > 0);
+  }
+
+  function openCart() {
+    const items = Object.values(cart).filter(x => x.qty > 0);
+
+    let message = 'YOUR ORDER\\n\\n';
+
+    items.forEach(item => {
+      message += `${item.name} × ${item.qty} = ₹${item.price * item.qty}\\n`;
+    });
+
+    const total = items.reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    );
+
+    message += `\\nTOTAL: ₹${total}`;
+
+    alert(message);
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  loadMenu();
+</script>
+
+</body>
+</html>
