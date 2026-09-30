@@ -48,6 +48,7 @@ module.exports = async (req, res) => {
       order_id: `TB${Date.now().toString().slice(-8)}`,
       customer_name: String(customer.name).slice(0, 80),
       customer_phone: String(customer.phone),
+      phone: String(customer.phone),
       customer_location: String(customer.location).slice(0, 500),
       items: clean,
       payment,
