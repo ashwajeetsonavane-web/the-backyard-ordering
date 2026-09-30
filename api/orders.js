@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
        location: String(customer.location).slice(0, 500),
       items: clean,
       payment,
+      payment_method: payment,
       note: String(note || '').slice(0, 300),
       total,
       status: 'NEW'
