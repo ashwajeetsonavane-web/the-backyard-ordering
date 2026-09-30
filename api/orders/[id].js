@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
     }
 
     const data = await supabase(
-      `orders?order_id=eq.${encodeURIComponent(id)}&select=order_id,status,total,payment,payment_method,updated_at&limit=1`,
+      `orders?order_id=eq.${encodeURIComponent(id)}&select=order_id,status,total,payment,payment_method&limit=1`,
       {
         method: 'GET',
         headers: {
@@ -44,8 +44,7 @@ module.exports = async (req, res) => {
       orderId: order.order_id,
       status: order.status || 'NEW',
       total: order.total,
-      payment: order.payment || order.payment_method,
-      updatedAt: order.updated_at
+      payment: order.payment || order.payment_method
     });
 
   } catch (e) {
