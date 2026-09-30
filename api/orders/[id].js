@@ -8,16 +8,33 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const id = req.query.id;
+    const id = String(req.query.id || '').trim();
+
+    if (!id) {
+      return res.status(400).json({
+        error: 'Order ID is required'
+      });
+    }
 
     const data = await supabase(
-      `orders?order_id=eq.${encodeURIComponent(id)}&select=order_id,status,total,payment,updated_at&limit=1`,
-      { method: 'GET' }
+      `orders?order_id=eq.${encodeURIComponent(id)}&select=order_id,status,total,payment,payment_method,updated_at&limit=1`,
+      {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      }
     );
 
-    if (!data || !data.length) {
+    console.log(
+      'TRACKING ORDER:',
+      id,
+      JSON.stringify(data)
+    );
+
+    if (!Array.isArray(data) || data.length === 0) {
       return res.status(404).json({
-        error: 'Not found'
+        error: 'Order not found'
       });
     }
 
@@ -25,14 +42,14 @@ module.exports = async (req, res) => {
 
     return res.json({
       orderId: order.order_id,
-      status: order.status,
+      status: order.status || 'NEW',
       total: order.total,
-      payment: order.payment,
+      payment: order.payment || order.payment_method,
       updatedAt: order.updated_at
     });
 
   } catch (e) {
-    console.error(e);
+    console.error('TRACKING ERROR:', e);
 
     return res.status(500).json({
       error: 'Could not fetch order.'
